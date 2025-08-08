@@ -20,6 +20,9 @@ publisher.on('error', err => console.log('Redis Client Error', err));
     await publisher.connect();
 })();
 
+const subscriber = createClient();
+subscriber.connect();
+
 import { generate } from './utils';
 import { getAllFiles } from './file';
 
@@ -47,10 +50,21 @@ app.post("/deploy", async (req, res) =>{
     });
 
     publisher.lPush("build-queue", id);
+    publisher.hSet("status", id, "uploaded");
+
+    console.log(`Deployment started for ${id} with repo ${repoUrl}`);
 
     res.json({
         id: id
     });
+})
+
+app.get("/status", async (req, res) => {
+    const id = req.query.id;
+    const response = await subscriber.hGet("status", id as string);
+    res.json({
+        status: response
+    })
 })
 
 app.listen(3000);
